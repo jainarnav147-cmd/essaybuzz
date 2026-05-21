@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EssayBuzz – PTE Academic Essay Scorer</title>
+<meta name="description" content="Free AI-powered PTE Academic essay scorer. Instant feedback on all 6 PTE criteria.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f7f5f0;--surface:#fff;--surface2:#f0ece4;
+  --border:rgba(0,0,0,0.1);--text:#1a1714;--text2:#6b6560;
+  --accent:#e85d2f;--accent2:#2d5be3;--green:#1d9e75;--red:#a32d2d;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* HEADER */
+.header{background:var(--text);padding:16px 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:24px;color:#fff;letter-spacing:-0.5px}
+.logo span{color:var(--accent)}
+.badge{font-size:11px;font-weight:500;background:var(--accent);color:#fff;padding:4px 10px;border-radius:20px}
+
+/* API KEY BANNER */
+.key-banner{background:#f0f7ff;border-bottom:2px solid #b3d4ff;padding:16px 32px}
+.key-banner-title{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;margin-bottom:8px;color:var(--accent2)}
+.key-banner-sub{font-size:13px;color:var(--text2);margin-bottom:12px;line-height:1.6}
+.key-banner-sub a{color:var(--accent2);font-weight:500}
+.key-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.key-input{flex:1;min-width:220px;border:1.5px solid #b3d4ff;border-radius:8px;padding:9px 13px;font-family:'DM Sans',sans-serif;font-size:13px;background:#fff;color:var(--text);outline:none}
+.key-input:focus{border-color:var(--accent2)}
+.key-save-btn{padding:9px 18px;background:var(--accent2);color:#fff;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap}
+.key-save-btn:hover{background:#1e46c7}
+#key-status{font-size:12px;font-weight:500;margin-top:6px}
+
+/* MAIN */
+.main{max-width:800px;margin:0 auto;padding:44px 20px 100px}
+.headline{font-family:'Syne',sans-serif;font-weight:800;font-size:40px;line-height:1.1;margin-bottom:10px;letter-spacing:-1.5px}
+.headline em{color:var(--accent);font-style:normal}
+.subtitle{font-size:15px;color:var(--text2);margin-bottom:36px;line-height:1.6}
+
+/* STEPS */
+.steps{display:flex;gap:8px;margin-bottom:32px}
+.step{flex:1;background:var(--surface2);border-radius:10px;padding:12px 14px;border:1.5px solid transparent;transition:all .2s}
+.step.active{background:var(--surface);border-color:var(--accent)}
+.step.done{background:var(--surface);border-color:var(--green)}
+.step-num{font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:var(--text2)}
+.step.active .step-num,.step.done .step-num{color:var(--text)}
+.step-label{font-size:11px;color:var(--text2);margin-top:2px}
+.step.active .step-label{color:var(--text);font-weight:500}
+
+/* CARD */
+.card{background:var(--surface);border-radius:16px;border:1px solid var(--border);padding:26px;margin-bottom:18px}
+.card-title{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0}
+
+/* MODE TOGGLE */
+.mode-toggle{display:flex;gap:8px;margin-bottom:16px}
+.mode-btn{padding:7px 16px;border-radius:8px;border:1.5px solid var(--border);background:transparent;color:var(--text2);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;transition:all .15s}
+.mode-btn.active{background:var(--text);color:#fff;border-color:var(--text)}
+
+/* TEXTAREA */
+textarea{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:13px 15px;font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.7;resize:vertical;min-height:110px;background:var(--bg);color:var(--text);outline:none;transition:border-color .15s}
+textarea:focus{border-color:var(--accent2);background:var(--surface)}
+.word-count{font-size:12px;color:var(--text2);margin-top:5px;text-align:right}
+.word-count.over{color:var(--red);font-weight:600}
+
+/* UPLOAD ZONE */
+.upload-zone{border:2px dashed var(--border);border-radius:12px;padding:36px;text-align:center;cursor:pointer;transition:all .2s;background:var(--bg)}
+.upload-zone:hover{border-color:var(--accent2);background:#f0f4ff}
+.upload-zone input[type=file]{display:none}
+.upload-icon{font-size:36px;margin-bottom:8px}
+.upload-label{font-size:14px;color:var(--text2)}
+.upload-label strong{color:var(--accent2)}
+.preview-img{max-width:100%;max-height:200px;border-radius:8px;margin-top:14px;object-fit:contain;border:1px solid var(--border)}
+
+/* SUBMIT */
+.submit-btn{width:100%;padding:17px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-family:'Syne',sans-serif;font-weight:700;font-size:17px;cursor:pointer;transition:all .2s;margin-top:6px}
+.submit-btn:hover{background:#c9471f;transform:translateY(-2px);box-shadow:0 8px 24px rgba(232,93,47,.3)}
+.submit-btn:active{transform:translateY(0)}
+
+/* ERROR */
+.error-box{background:#fff5f5;border:1px solid #f7c1c1;border-radius:10px;padding:14px 16px;color:var(--red);font-size:14px;margin-top:10px;line-height:1.6}
+.error-box a{color:var(--accent2)}
+
+/* LOADING */
+.loading-wrap{text-align:center;padding:80px 20px}
+.spinner{width:46px;height:46px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 18px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-family:'Syne',sans-serif;font-weight:700;font-size:20px}
+.loading-sub{font-size:13px;color:var(--text2);margin-top:6px}
+
+/* RESULTS */
+.overall-score{display:flex;align-items:center;gap:24px;margin-bottom:26px}
+.score-circle{width:110px;height:110px;border-radius:50%;background:var(--text);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0}
+.score-num{font-family:'Syne',sans-serif;font-weight:800;font-size:40px;color:#fff;line-height:1}
+.score-max{font-size:12px;color:rgba(255,255,255,.5);margin-top:2px}
+.score-band{font-family:'Syne',sans-serif;font-weight:700;font-size:22px;margin-bottom:6px}
+.score-desc{font-size:14px;color:var(--text2);line-height:1.6;max-width:400px}
+
+/* CRITERIA GRID */
+.criteria-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.criteria-card{background:var(--bg);border-radius:10px;padding:13px 15px;border:1px solid var(--border)}
+.criteria-name{font-size:11px;color:var(--text2);font-weight:500;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px}
+.criteria-bar-bg{height:6px;background:rgba(0,0,0,.08);border-radius:3px;overflow:hidden;margin-bottom:7px}
+.criteria-bar{height:100%;border-radius:3px;transition:width 1s ease}
+.criteria-footer{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.criteria-score-val{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;white-space:nowrap}
+.criteria-comment{font-size:11px;color:var(--text2);line-height:1.4;text-align:right}
+
+/* FEEDBACK */
+.feedback-title{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;margin-bottom:10px;margin-top:4px}
+.feedback-item{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);font-size:14px;line-height:1.6}
+.feedback-item:last-child{border-bottom:none}
+.fb-icon{font-size:15px;flex-shrink:0;margin-top:2px}
+
+/* ANNOTATED */
+.essay-annotated{font-size:14px;line-height:2;padding:16px;background:var(--bg);border-radius:10px;border:1px solid var(--border)}
+.highlight-good{background:#c8eedb;border-radius:3px;padding:1px 3px}
+.highlight-bad{background:#fde0e0;border-radius:3px;padding:1px 3px;text-decoration:underline wavy #e24b4a}
+
+/* RESET BTN */
+.reset-btn{background:transparent;border:1.5px solid var(--text);color:var(--text);padding:12px 28px;border-radius:10px;font-family:'Syne',sans-serif;font-weight:700;font-size:14px;cursor:pointer;margin-top:18px;transition:all .15s;display:inline-block}
+.reset-btn:hover{background:var(--text);color:#fff}
+
+/* FOOTER */
+.footer{text-align:center;padding:22px;font-size:12px;color:var(--text2);border-top:1px solid var(--border)}
+
+@media(max-width:600px){
+  .headline{font-size:28px}
+  .criteria-grid{grid-template-columns:1fr}
+  .overall-score{flex-direction:column;text-align:center}
+  .steps{flex-wrap:wrap}
+  .key-banner{padding:14px 16px}
+  .main{padding:28px 14px 80px}
+  .header{padding:14px 16px}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">Essay<span>Buzz</span></div>
+  <div class="badge">PTE Academic Scorer • Free</div>
+</div>
+
+<!-- API KEY BANNER -->
+<div class="key-banner">
+  <div class="key-banner-title">🔑 Enter your FREE Google Gemini API Key</div>
+  <div class="key-banner-sub">
+    Get your free key in 1 minute → go to 
+    <a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com/app/apikey</a> 
+    → click <strong>"Create API Key"</strong> → copy and paste it below.<br>
+    ✅ Completely free. No credit card. No payment needed.
+  </div>
+  <div class="key-row">
+    <input type="password" class="key-input" id="key-input" placeholder="Paste your Gemini API key here  (AIza...)" autocomplete="off">
+    <button class="key-save-btn" onclick="saveKey()">Save Key ✓</button>
+  </div>
+  <div id="key-status"></div>
+</div>
+
+<div class="main">
+  <h1 class="headline">Score your essay<br>like <em>PTE</em> would.</h1>
+  <p class="subtitle">Type or upload your question &amp; essay. Get instant AI-powered PTE Academic scoring on all 6 official criteria — completely free!</p>
+
+  <div class="steps">
+    <div class="step" id="step1"><div class="step-num">01</div><div class="step-label">Add question</div></div>
+    <div class="step" id="step2"><div class="step-num">02</div><div class="step-label">Write essay</div></div>
+    <div class="step" id="step3"><div class="step-num">03</div><div class="step-label">Get scored</div></div>
+  </div>
+
+  <div id="app-form">
+
+    <!-- QUESTION CARD -->
+    <div class="card">
+      <div class="card-title"><div class="dot"></div>Essay Question / Prompt</div>
+      <div class="mode-toggle">
+        <button class="mode-btn active" id="q-text-btn" onclick="switchMode('q','text')">✏️ Type question</button>
+        <button class="mode-btn" id="q-img-btn" onclick="switchMode('q','image')">🖼️ Upload image</button>
+      </div>
+      <div id="q-text-area">
+        <textarea id="question-input" rows="3" placeholder="Type or paste your PTE essay question here...&#10;&#10;Example: 'Some people think that the best way to reduce crime is to give longer prison sentences. Others, however, believe there are better alternative ways of reducing crime. Discuss both views and give your own opinion.'"></textarea>
+      </div>
+      <div id="q-img-area" style="display:none">
+        <div class="upload-zone" onclick="document.getElementById('q-file').click()">
+          <div class="upload-icon">🖼️</div>
+          <div class="upload-label"><strong>Click to upload</strong> question image</div>
+          <div class="upload-label" style="font-size:12px;margin-top:4px;opacity:.7">PNG, JPG, WEBP supported</div>
+          <input type="file" id="q-file" accept="image/*" onchange="loadImage(this,'q-preview','q')">
+          <img id="q-preview" class="preview-img" style="display:none">
+        </div>
+      </div>
+    </div>
+
+    <!-- ESSAY CARD -->
+    <div class="card">
+      <div class="card-title"><div class="dot"></div>Your Essay <span style="font-size:12px;font-weight:400;color:var(--text2);margin-left:auto">Max 400 words</span></div>
+      <div class="mode-toggle">
+        <button class="mode-btn active" id="e-text-btn" onclick="switchMode('e','text')">✏️ Type essay</button>
+        <button class="mode-btn" id="e-img-btn" onclick="switchMode('e','image')">📷 Upload image</button>
+      </div>
+      <div id="e-text-area">
+        <textarea id="essay-input" rows="12" placeholder="Write or paste your essay here (max 400 words)...&#10;&#10;💡 PTE tip: Write 200–300 words. Use: Introduction → 2 Body Paragraphs → Conclusion." oninput="updateWordCount()"></textarea>
+        <div class="word-count" id="word-count">0 / 400 words</div>
+      </div>
+      <div id="e-img-area" style="display:none">
+        <div class="upload-zone" onclick="document.getElementById('e-file').click()">
+          <div class="upload-icon">📝</div>
+          <div class="upload-label"><strong>Click to upload</strong> your handwritten or typed essay photo</div>
+          <div class="upload-label" style="font-size:12px;margin-top:4px;opacity:.7">AI will read and score it automatically</div>
+          <input type="file" id="e-file" accept="image/*" onchange="loadImage(this,'e-preview','e')">
+          <img id="e-preview" class="preview-img" style="display:none">
+        </div>
+      </div>
+    </div>
+
+    <div id="error-msg" class="error-box" style="display:none"></div>
+    <button class="submit-btn" onclick="scoreEssay()">⚡ Score My Essay — Free!</button>
+  </div>
+
+  <!-- LOADING -->
+  <div id="app-loading" style="display:none">
+    <div class="loading-wrap">
+      <div class="spinner"></div>
+      <div class="loading-text" id="loading-text">Reading your essay...</div>
+      <div class="loading-sub">Checking all 6 PTE criteria — takes about 10 seconds</div>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="app-results" style="display:none">
+    <div class="card">
+      <div class="overall-score">
+        <div class="score-circle">
+          <div class="score-num" id="res-score">--</div>
+          <div class="score-max">/ 90</div>
+        </div>
+        <div>
+          <div class="score-band" id="res-band">--</div>
+          <div class="score-desc" id="res-summary">--</div>
+        </div>
+      </div>
+      <div class="criteria-grid" id="criteria-grid"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><div class="dot"></div>Detailed Feedback</div>
+      <div id="feedback-list"></div>
+    </div>
+
+    <div class="card" id="annotated-card" style="display:none">
+      <div class="card-title"><div class="dot"></div>Your Essay – Annotated</div>
+      <div class="essay-annotated" id="essay-annotated"></div>
+      <div style="margin-top:10px;font-size:12px;color:var(--text2);display:flex;gap:18px;flex-wrap:wrap">
+        <span><span style="background:#c8eedb;padding:1px 7px;border-radius:3px">Green</span> — Strengths</span>
+        <span><span style="background:#fde0e0;padding:1px 7px;border-radius:3px">Red</span> — Needs improvement</span>
+      </div>
+    </div>
+
+    <button class="reset-btn" onclick="resetApp()">← Score another essay</button>
+  </div>
+</div>
+
+<div class="footer">EssayBuzz &nbsp;·&nbsp; Free PTE Academic scoring &nbsp;·&nbsp; Powered by Google Gemini AI</div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────
+let qMode = 'text', eMode = 'text';
+let qImgData = null, qImgMime = 'image/jpeg';
+let eImgData = null, eImgMime = 'image/jpeg';
+let geminiKey = localStorage.getItem('eb_gemini_key') || '';
+let loadingTimer = null;
+
+const LOADING_MSGS = [
+  'Reading your essay carefully...',
+  'Checking grammar and spelling...',
+  'Evaluating vocabulary range...',
+  'Analyzing structure and coherence...',
+  'Assessing content relevance...',
+  'Calculating your PTE band score...'
+];
+
+const BAR_COLORS = {
+  'Content':'#e85d2f','Form':'#2d5be3','Grammar':'#1d9e75',
+  'Vocabulary':'#ba7517','Spelling':'#7f77dd','Coherence & Cohesion':'#d4537e'
+};
+
+// ── INIT ───────────────────────────────────────────────
+window.addEventListener('load', () => {
+  setStep(1);
+  if (geminiKey) {
+    document.getElementById('key-input').value = geminiKey;
+    setKeyStatus('✅ Key loaded — you are ready to score!', '#1d9e75');
+  }
+});
+
+// ── SAVE KEY ───────────────────────────────────────────
+function saveKey() {
+  const val = document.getElementById('key-input').value.trim();
+  if (!val || val.length < 10) {
+    setKeyStatus('⚠️ Please paste a valid Gemini API key.', '#a32d2d'); return;
+  }
+  geminiKey = val;
+  localStorage.setItem('eb_gemini_key', val);
+  setKeyStatus('✅ Key saved! You are ready to score essays for FREE!', '#1d9e75');
+}
+function setKeyStatus(msg, color) {
+  const el = document.getElementById('key-status');
+  el.textContent = msg; el.style.color = color;
+}
+
+// ── MODE SWITCH ────────────────────────────────────────
+function switchMode(which, mode) {
+  if (which === 'q') {
+    qMode = mode;
+    toggle('q-text-area', mode === 'text');
+    toggle('q-img-area',  mode === 'image');
+    setActive('q-text-btn', mode === 'text');
+    setActive('q-img-btn',  mode === 'image');
+  } else {
+    eMode = mode;
+    toggle('e-text-area', mode === 'text');
+    toggle('e-img-area',  mode === 'image');
+    setActive('e-text-btn', mode === 'text');
+    setActive('e-img-btn',  mode === 'image');
+  }
+}
+function toggle(id, show) { document.getElementById(id).style.display = show ? 'block' : 'none'; }
+function setActive(id, active) { document.getElementById(id).classList.toggle('active', active); }
+
+// ── WORD COUNT ─────────────────────────────────────────
+function updateWordCount() {
+  const t = document.getElementById('essay-input').value.trim();
+  const n = t ? t.split(/\s+/).filter(Boolean).length : 0;
+  const el = document.getElementById('word-count');
+  el.textContent = n + ' / 400 words';
+  el.className = 'word-count' + (n > 400 ? ' over' : '');
+}
+
+// ── IMAGE LOAD ─────────────────────────────────────────
+function loadImage(input, previewId, which) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = document.getElementById(previewId);
+    img.src = e.target.result; img.style.display = 'block';
+    const b64 = e.target.result.split(',')[1];
+    if (which === 'q') { qImgData = b64; qImgMime = file.type || 'image/jpeg'; }
+    else               { eImgData = b64; eImgMime = file.type || 'image/jpeg'; }
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── STEPS ──────────────────────────────────────────────
+function setStep(s) {
+  ['step1','step2','step3'].forEach((id, i) => {
+    document.getElementById(id).className =
+      'step' + (i+1 < s ? ' done' : i+1 === s ? ' active' : '');
+  });
+}
+
+// ── ERROR ──────────────────────────────────────────────
+function showError(msg) {
+  const el = document.getElementById('error-msg');
+  el.innerHTML = msg; el.style.display = 'block';
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+function hideError() { document.getElementById('error-msg').style.display = 'none'; }
+
+// ── SCORE ──────────────────────────────────────────────
+async function scoreEssay() {
+  hideError();
+
+  if (!geminiKey) {
+    showError('⚠️ Please paste your free Gemini API key in the blue box at the top first!');
+    document.getElementById('key-input').focus();
+    return;
+  }
+
+  const qText = qMode === 'text' ? document.getElementById('question-input').value.trim() : '';
+  const eText = eMode === 'text' ? document.getElementById('essay-input').value.trim()   : '';
+
+  if (qMode === 'text' && !qText) { showError('Please enter the essay question.'); return; }
+  if (qMode === 'image' && !qImgData) { showError('Please upload an image of the question.'); return; }
+  if (eMode === 'text' && !eText) { showError('Please enter your essay.'); return; }
+  if (eMode === 'image' && !eImgData) { showError('Please upload an image of your essay.'); return; }
+
+  if (eMode === 'text') {
+    const wc = eText.split(/\s+/).filter(Boolean).length;
+    if (wc > 400) {
+      showError('Your essay is <strong>' + wc + ' words</strong>. Please shorten it to 400 words or fewer.');
+      return;
+    }
+  }
+
+  // Show loading
+  document.getElementById('app-form').style.display = 'none';
+  document.getElementById('app-loading').style.display = 'block';
+  setStep(3);
+
+  let li = 0;
+  document.getElementById('loading-text').textContent = LOADING_MSGS[0];
+  loadingTimer = setInterval(() => {
+    li = (li + 1) % LOADING_MSGS.length;
+    document.getElementById('loading-text').textContent = LOADING_MSGS[li];
+  }, 1800);
+
+  try {
+    const prompt = buildPrompt(qText, eText);
+    const parts  = buildParts(qText, eText);
+
+    const body = {
+      contents: [{ parts }],
+      generationConfig: {
+        temperature: 0.3,
+        maxOutputTokens: 1200
+      }
+    };
+
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`;
+
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+
+    const data = await resp.json();
+    clearInterval(loadingTimer);
+
+    if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+
+    const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const clean = raw.replace(/```json|```/g, '').trim();
+
+    let result;
+    try {
+      result = JSON.parse(clean);
+    } catch(e) {
+      // Try to extract JSON from the response
+      const match = clean.match(/\{[\s\S]*\}/);
+      if (match) result = JSON.parse(match[0]);
+      else throw new Error('Could not parse AI response. Please try again.');
+    }
+
+    renderResults(result);
+
+  } catch (err) {
+    clearInterval(loadingTimer);
+    document.getElementById('app-loading').style.display = 'none';
+    document.getElementById('app-form').style.display = 'block';
+    setStep(1);
+
+    let errMsg = '⚠️ Error: ' + err.message;
+    if (err.message.includes('API_KEY') || err.message.includes('key')) {
+      errMsg += '<br><small>Your API key may be wrong. Go to <a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com</a> and get a new one.</small>';
+    }
+    showError(errMsg);
+  }
+}
+
+// ── BUILD GEMINI PARTS ─────────────────────────────────
+function buildParts(qText, eText) {
+  const systemInstruction = `You are an expert PTE Academic (Pearson Test of English) examiner. Score essays strictly on official PTE Write Essay rubric.
+
+PTE Write Essay Criteria (Total: 13 points):
+1. Content (0–3): Addresses all prompt aspects, relevant and developed ideas
+2. Form (0–2): Appropriate length and essay format (200–400 words acceptable)
+3. Grammar (0–2): Accuracy and variety of grammatical structures  
+4. Vocabulary (0–2): Range, accuracy, appropriateness of word choices
+5. Spelling (0–2): Accurate spelling throughout
+6. Coherence & Cohesion (0–2): Organisation, paragraphing, cohesive devices
+
+Map raw score to PTE score (10–90) and CEFR band:
+12–13 → 80–90 → C2 (Mastery)
+10–11 → 65–79 → C1 (Effective Operational)  
+8–9 → 50–64 → B2 (Vantage/Upper Intermediate)
+6–7 → 36–49 → B1 (Threshold/Intermediate)
+4–5 → 22–35 → A2 (Waystage/Elementary)
+0–3 → 10–21 → A1 (Breakthrough/Beginner)
+
+YOU MUST respond with ONLY valid JSON. No markdown. No explanation. No text before or after. Just the JSON object:
+{
+  "pte_score": <number 10-90>,
+  "raw_score": <number 0-13>,
+  "cefr_band": "<e.g. B2>",
+  "band_label": "<e.g. Upper Intermediate>",
+  "summary": "<2-3 sentence overall verdict>",
+  "criteria": [
+    {"name":"Content","score":<0-3>,"max":3,"comment":"<max 10 words>"},
+    {"name":"Form","score":<0-2>,"max":2,"comment":"<max 10 words>"},
+    {"name":"Grammar","score":<0-2>,"max":2,"comment":"<max 10 words>"},
+    {"name":"Vocabulary","score":<0-2>,"max":2,"comment":"<max 10 words>"},
+    {"name":"Spelling","score":<0-2>,"max":2,"comment":"<max 10 words>"},
+    {"name":"Coherence & Cohesion","score":<0-2>,"max":2,"comment":"<max 10 words>"}
+  ],
+  "strengths": ["<specific strength with example from essay>","<another strength>"],
+  "improvements": ["<actionable tip 1>","<actionable tip 2>","<actionable tip 3>"],
+  "essay_text": "<full essay text with [[GOOD:phrase]] around 2-3 strong phrases and [[BAD:phrase]] around 2-3 weak phrases>"
+}`;
+
+  const parts = [];
+
+  // System + Question
+  if (qMode === 'image' && qImgData) {
+    parts.push({ text: systemInstruction + '\n\nThe following image contains the essay question:' });
+    parts.push({ inline_data: { mime_type: qImgMime, data: qImgData } });
+  } else {
+    parts.push({ text: systemInstruction + '\n\nEssay Question: ' + qText });
+  }
+
+  // Essay
+  if (eMode === 'image' && eImgData) {
+    parts.push({ text: "\nThe following image contains the student's essay. Read it carefully, extract the text, then score it:" });
+    parts.push({ inline_data: { mime_type: eImgMime, data: eImgData } });
+  } else {
+    parts.push({ text: "\nStudent's Essay:\n" + eText });
+  }
+
+  parts.push({ text: '\nScore this essay on all PTE criteria. Return ONLY the JSON object, nothing else.' });
+  return parts;
+}
+
+function buildPrompt(qText, eText) {
+  return ''; // Not used directly, kept for reference
+}
+
+// ── RENDER RESULTS ─────────────────────────────────────
+function renderResults(r) {
+  document.getElementById('app-loading').style.display = 'none';
+  document.getElementById('app-results').style.display = 'block';
+
+  document.getElementById('res-score').textContent   = r.pte_score;
+  document.getElementById('res-band').textContent    = r.cefr_band + ' – ' + r.band_label;
+  document.getElementById('res-summary').textContent = r.summary;
+
+  // Criteria bars
+  const grid = document.getElementById('criteria-grid');
+  grid.innerHTML = '';
+  (r.criteria || []).forEach(c => {
+    const pct = Math.round((c.score / c.max) * 100);
+    const col = BAR_COLORS[c.name] || '#888';
+    grid.innerHTML += `
+      <div class="criteria-card">
+        <div class="criteria-name">${c.name}</div>
+        <div class="criteria-bar-bg">
+          <div class="criteria-bar" style="width:${pct}%;background:${col}"></div>
+        </div>
+        <div class="criteria-footer">
+          <div class="criteria-score-val" style="color:${col}">${c.score}/${c.max}</div>
+          <div class="criteria-comment">${c.comment}</div>
+        </div>
+      </div>`;
+  });
+
+  // Feedback
+  const fl = document.getElementById('feedback-list');
+  fl.innerHTML = '';
+  if (r.strengths?.length) {
+    fl.innerHTML += '<div class="feedback-title">✅ Strengths</div>';
+    r.strengths.forEach(s =>
+      fl.innerHTML += `<div class="feedback-item"><span class="fb-icon">✓</span><span>${s}</span></div>`
+    );
+  }
+  if (r.improvements?.length) {
+    fl.innerHTML += '<div class="feedback-title" style="margin-top:18px">🎯 Areas to Improve</div>';
+    r.improvements.forEach(t =>
+      fl.innerHTML += `<div class="feedback-item"><span class="fb-icon">→</span><span>${t}</span></div>`
+    );
+  }
+
+  // Annotated essay
+  if (r.essay_text) {
+    const ann = r.essay_text
+      .replace(/\[\[GOOD:(.*?)\]\]/g, '<span class="highlight-good">$1</span>')
+      .replace(/\[\[BAD:(.*?)\]\]/g,  '<span class="highlight-bad">$1</span>')
+      .replace(/\n/g, '<br>');
+    document.getElementById('essay-annotated').innerHTML = ann;
+    document.getElementById('annotated-card').style.display = 'block';
+  }
+
+  document.getElementById('app-results').scrollIntoView({ behavior: 'smooth' });
+}
+
+// ── RESET ──────────────────────────────────────────────
+function resetApp() {
+  document.getElementById('app-results').style.display = 'none';
+  document.getElementById('app-form').style.display    = 'block';
+  document.getElementById('question-input').value = '';
+  document.getElementById('essay-input').value    = '';
+  ['q-preview','e-preview'].forEach(id => {
+    document.getElementById(id).style.display = 'none';
+  });
+  qImgData = eImgData = null;
+  updateWordCount(); hideError(); setStep(1);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+</body>
+</html>
