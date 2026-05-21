@@ -147,15 +147,15 @@ textarea:focus{border-color:var(--accent2);background:var(--surface)}
 
 <!-- API KEY BANNER -->
 <div class="key-banner">
-  <div class="key-banner-title">🔑 Enter your FREE Google Gemini API Key</div>
+  <div class="key-banner-title">🔑 Enter your FREE Groq API Key</div>
   <div class="key-banner-sub">
     Get your free key in 1 minute → go to 
-    <a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com/app/apikey</a> 
+    <a href="https://console.groq.com/keys" target="_blank">console.groq.com/keys</a> 
     → click <strong>"Create API Key"</strong> → copy and paste it below.<br>
     ✅ Completely free. No credit card. No payment needed.
   </div>
   <div class="key-row">
-    <input type="password" class="key-input" id="key-input" placeholder="Paste your Gemini API key here  (AIza...)" autocomplete="off">
+    <input type="password" class="key-input" id="key-input" placeholder="Paste your Groq API key here  (gsk_...)" autocomplete="off">
     <button class="key-save-btn" onclick="saveKey()">Save Key ✓</button>
   </div>
   <div id="key-status"></div>
@@ -263,14 +263,14 @@ textarea:focus{border-color:var(--accent2);background:var(--surface)}
   </div>
 </div>
 
-<div class="footer">EssayBuzz &nbsp;·&nbsp; Free PTE Academic scoring &nbsp;·&nbsp; Powered by Google Gemini AI</div>
+<div class="footer">EssayBuzz &nbsp;·&nbsp; Free PTE Academic scoring &nbsp;·&nbsp; Powered by Groq AI (Llama)</div>
 
 <script>
 // ── STATE ──────────────────────────────────────────────
 let qMode = 'text', eMode = 'text';
 let qImgData = null, qImgMime = 'image/jpeg';
 let eImgData = null, eImgMime = 'image/jpeg';
-let geminiKey = localStorage.getItem('eb_gemini_key') || '';
+let groqKey = localStorage.getItem('eb_groq_key') || '';
 let loadingTimer = null;
 
 const LOADING_MSGS = [
@@ -290,8 +290,8 @@ const BAR_COLORS = {
 // ── INIT ───────────────────────────────────────────────
 window.addEventListener('load', () => {
   setStep(1);
-  if (geminiKey) {
-    document.getElementById('key-input').value = geminiKey;
+  if (groqKey) {
+    document.getElementById('key-input').value = groqKey;
     setKeyStatus('✅ Key loaded — you are ready to score!', '#1d9e75');
   }
 });
@@ -300,10 +300,10 @@ window.addEventListener('load', () => {
 function saveKey() {
   const val = document.getElementById('key-input').value.trim();
   if (!val || val.length < 10) {
-    setKeyStatus('⚠️ Please paste a valid Gemini API key.', '#a32d2d'); return;
+    setKeyStatus('⚠️ Please paste a valid Groq API key (starts with gsk_).', '#a32d2d'); return;
   }
-  geminiKey = val;
-  localStorage.setItem('eb_gemini_key', val);
+  groqKey = val;
+  localStorage.setItem('eb_groq_key', val);
   setKeyStatus('✅ Key saved! You are ready to score essays for FREE!', '#1d9e75');
 }
 function setKeyStatus(msg, color) {
@@ -373,7 +373,7 @@ function hideError() { document.getElementById('error-msg').style.display = 'non
 async function scoreEssay() {
   hideError();
 
-  if (!geminiKey) {
+  if (!groqKey) {
     showError('⚠️ Please paste your free Gemini API key in the blue box at the top first!');
     document.getElementById('key-input').focus();
     return;
@@ -408,23 +408,24 @@ async function scoreEssay() {
   }, 1800);
 
   try {
-    const prompt = buildPrompt(qText, eText);
-    const parts  = buildParts(qText, eText);
+    const userMessage = buildUserMessage(qText, eText);
+    const systemPrompt = getSystemPrompt();
 
-    const body = {
-      contents: [{ parts }],
-      generationConfig: {
-        temperature: 0.3,
-        maxOutputTokens: 1200
-      }
-    };
-
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`;
-
-    const resp = await fetch(url, {
+    const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + groqKey
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        temperature: 0.3,
+        max_tokens: 1200,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user',   content: userMessage  }
+        ]
+      })
     });
 
     const data = await resp.json();
@@ -432,14 +433,13 @@ async function scoreEssay() {
 
     if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
 
-    const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const raw = data.choices?.[0]?.message?.content || '';
     const clean = raw.replace(/```json|```/g, '').trim();
 
     let result;
     try {
       result = JSON.parse(clean);
     } catch(e) {
-      // Try to extract JSON from the response
       const match = clean.match(/\{[\s\S]*\}/);
       if (match) result = JSON.parse(match[0]);
       else throw new Error('Could not parse AI response. Please try again.');
@@ -455,77 +455,35 @@ async function scoreEssay() {
 
     let errMsg = '⚠️ Error: ' + err.message;
     if (err.message.includes('API_KEY') || err.message.includes('key')) {
-      errMsg += '<br><small>Your API key may be wrong. Go to <a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com</a> and get a new one.</small>';
+      errMsg += '<br><small>Your API key may be wrong. Go to <a href="https://console.groq.com/keys" target="_blank">aistudio.google.com</a> and get a new one.</small>';
     }
     showError(errMsg);
   }
 }
 
-// ── BUILD GEMINI PARTS ─────────────────────────────────
-function buildParts(qText, eText) {
-  const systemInstruction = `You are an expert PTE Academic (Pearson Test of English) examiner. Score essays strictly on official PTE Write Essay rubric.
+// ── BUILD GROQ MESSAGE ────────────────────────────────
+function getSystemPrompt() {
+  return "You are an expert PTE Academic (Pearson Test of English) examiner. Score essays strictly on the official PTE Write Essay rubric.\n\nPTE Write Essay Criteria (Total: 13 points):\n1. Content (0-3): Addresses all prompt aspects, relevant and developed ideas\n2. Form (0-2): Appropriate length and essay format (200-400 words acceptable)\n3. Grammar (0-2): Accuracy and variety of grammatical structures\n4. Vocabulary (0-2): Range, accuracy, appropriateness of word choices\n5. Spelling (0-2): Accurate spelling throughout\n6. Coherence & Cohesion (0-2): Organisation, paragraphing, cohesive devices\n\nMap raw score to PTE score (10-90) and CEFR band:\n12-13 = 80-90 = C2 Mastery\n10-11 = 65-79 = C1 Effective Operational\n8-9 = 50-64 = B2 Upper Intermediate\n6-7 = 36-49 = B1 Intermediate\n4-5 = 22-35 = A2 Elementary\n0-3 = 10-21 = A1 Beginner\n\nRespond with ONLY valid JSON, no markdown, no extra text. Use this exact structure:\n{\"pte_score\":72,\"raw_score\":9,\"cefr_band\":\"B2\",\"band_label\":\"Upper Intermediate\",\"summary\":\"2-3 sentence summary here\",\"criteria\":[{\"name\":\"Content\",\"score\":2,\"max\":3,\"comment\":\"brief comment\"},{\"name\":\"Form\",\"score\":2,\"max\":2,\"comment\":\"brief comment\"},{\"name\":\"Grammar\",\"score\":2,\"max\":2,\"comment\":\"brief comment\"},{\"name\":\"Vocabulary\",\"score\":1,\"max\":2,\"comment\":\"brief comment\"},{\"name\":\"Spelling\",\"score\":2,\"max\":2,\"comment\":\"brief comment\"},{\"name\":\"Coherence & Cohesion\",\"score\":2,\"max\":2,\"comment\":\"brief comment\"}],\"strengths\":[\"strength 1\",\"strength 2\"],\"improvements\":[\"tip 1\",\"tip 2\",\"tip 3\"],\"essay_text\":\"full essay text with [[GOOD:strong phrase]] and [[BAD:weak phrase]] annotations\"}";
+}
 
-PTE Write Essay Criteria (Total: 13 points):
-1. Content (0–3): Addresses all prompt aspects, relevant and developed ideas
-2. Form (0–2): Appropriate length and essay format (200–400 words acceptable)
-3. Grammar (0–2): Accuracy and variety of grammatical structures  
-4. Vocabulary (0–2): Range, accuracy, appropriateness of word choices
-5. Spelling (0–2): Accurate spelling throughout
-6. Coherence & Cohesion (0–2): Organisation, paragraphing, cohesive devices
-
-Map raw score to PTE score (10–90) and CEFR band:
-12–13 → 80–90 → C2 (Mastery)
-10–11 → 65–79 → C1 (Effective Operational)  
-8–9 → 50–64 → B2 (Vantage/Upper Intermediate)
-6–7 → 36–49 → B1 (Threshold/Intermediate)
-4–5 → 22–35 → A2 (Waystage/Elementary)
-0–3 → 10–21 → A1 (Breakthrough/Beginner)
-
-YOU MUST respond with ONLY valid JSON. No markdown. No explanation. No text before or after. Just the JSON object:
-{
-  "pte_score": <number 10-90>,
-  "raw_score": <number 0-13>,
-  "cefr_band": "<e.g. B2>",
-  "band_label": "<e.g. Upper Intermediate>",
-  "summary": "<2-3 sentence overall verdict>",
-  "criteria": [
-    {"name":"Content","score":<0-3>,"max":3,"comment":"<max 10 words>"},
-    {"name":"Form","score":<0-2>,"max":2,"comment":"<max 10 words>"},
-    {"name":"Grammar","score":<0-2>,"max":2,"comment":"<max 10 words>"},
-    {"name":"Vocabulary","score":<0-2>,"max":2,"comment":"<max 10 words>"},
-    {"name":"Spelling","score":<0-2>,"max":2,"comment":"<max 10 words>"},
-    {"name":"Coherence & Cohesion","score":<0-2>,"max":2,"comment":"<max 10 words>"}
-  ],
-  "strengths": ["<specific strength with example from essay>","<another strength>"],
-  "improvements": ["<actionable tip 1>","<actionable tip 2>","<actionable tip 3>"],
-  "essay_text": "<full essay text with [[GOOD:phrase]] around 2-3 strong phrases and [[BAD:phrase]] around 2-3 weak phrases>"
-}`;
-
-  const parts = [];
-
-  // System + Question
+function buildUserMessage(qText, eText) {
+  let msg = '';
   if (qMode === 'image' && qImgData) {
-    parts.push({ text: systemInstruction + '\n\nThe following image contains the essay question:' });
-    parts.push({ inline_data: { mime_type: qImgMime, data: qImgData } });
+    msg += 'Essay Question: [Image uploaded - treat as a standard PTE Write Essay task]\n\n';
   } else {
-    parts.push({ text: systemInstruction + '\n\nEssay Question: ' + qText });
+    msg += 'Essay Question: ' + qText + '\n\n';
   }
-
-  // Essay
   if (eMode === 'image' && eImgData) {
-    parts.push({ text: "\nThe following image contains the student's essay. Read it carefully, extract the text, then score it:" });
-    parts.push({ inline_data: { mime_type: eImgMime, data: eImgData } });
+    msg += "Student Essay: [Image uploaded - image scoring not supported in free mode, please ask student to type their essay instead]";
   } else {
-    parts.push({ text: "\nStudent's Essay:\n" + eText });
+    msg += "Student Essay:\n" + eText;
   }
-
-  parts.push({ text: '\nScore this essay on all PTE criteria. Return ONLY the JSON object, nothing else.' });
-  return parts;
+  msg += '\n\nScore this essay and return ONLY the JSON object.';
+  return msg;
 }
 
-function buildPrompt(qText, eText) {
-  return ''; // Not used directly, kept for reference
-}
+function buildParts() { return []; }
+function buildPrompt() { return ''; }
 
 // ── RENDER RESULTS ─────────────────────────────────────
 function renderResults(r) {
